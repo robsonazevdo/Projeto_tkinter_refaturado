@@ -14,6 +14,7 @@ from agendamento.agenda import Agendamento
 from backup.backup import Backup
 from servico.servico import Servico
 from funcionario.funcionario import Funcionario
+from comanda.comanda import BeautySalon
 
 
 import os
@@ -235,6 +236,11 @@ class Frame2(tk.Frame):
         barraMenu.add_cascade(label="Backup", menu=backup_Menu)
 
 
+        comanda_Menu = tk.Menu(barraMenu, tearoff=0)
+        comanda_Menu.add_command(label="Comanda", command=self.comanda)
+        barraMenu.add_cascade(label="Venda", menu=comanda_Menu)
+
+
         self.master.config(menu=barraMenu)
 
         
@@ -285,6 +291,9 @@ class Frame2(tk.Frame):
 
     def fazer_backup(self):
         Backup(self.master)
+
+    def comanda(self):
+        BeautySalon(self.master)
 
     
 
