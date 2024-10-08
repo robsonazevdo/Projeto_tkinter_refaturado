@@ -15,6 +15,7 @@ from backup.backup import Backup
 from servico.servico import Servico
 from funcionario.funcionario import Funcionario
 from comanda.comanda import BeautySalon
+from historico.historico import Historico_Atendimento
 
 
 import os
@@ -48,7 +49,7 @@ class App(tk.Tk):
     try:
         frame.tkraise()
     except tk.TclError as e:
-        print("Erro ao tentar mostrar o frame:", e)
+           ("Erro ao tentar mostrar o frame:", e)
 
 
 class Frame1(tk.Frame):
@@ -241,6 +242,11 @@ class Frame2(tk.Frame):
         barraMenu.add_cascade(label="Venda", menu=comanda_Menu)
 
 
+        historico_Menu = tk.Menu(barraMenu, tearoff=0)
+        historico_Menu.add_command(label="Histórico", command=self.historico)
+        barraMenu.add_cascade(label="Histórico Atendimento", menu=historico_Menu)
+
+
         self.master.config(menu=barraMenu)
 
         
@@ -295,7 +301,9 @@ class Frame2(tk.Frame):
     def comanda(self):
         BeautySalon(self.master)
 
-    
+    def historico(self):
+        Historico_Atendimento(self.master)
+
 
 
         

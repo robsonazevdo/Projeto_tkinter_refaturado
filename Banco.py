@@ -88,12 +88,20 @@ def criar_comanda(id_cliente, numero_comanda, data_venda, id_operacao, id_situac
     nova_comanda = db_criar_comanda(id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, id_funcionario)
     return False, nova_comanda   
 
-
+ 
 
 def criar_additems(id_comanda, id_servico, quantidade, id_funcionario):
     additems_ja_existe = db_verificar_additems(id_comanda, id_servico, quantidade, id_funcionario)
     if additems_ja_existe is not None: return True, additems_ja_existe
     nova_add = db_criar_additems(id_comanda, id_servico, quantidade, id_funcionario)
+    return False, nova_add
+
+
+
+def criar_comanda_fechada(id_comanda, forma_pagamento, desconto, valor_total):
+    comanda_fechada_ja_existe = db_verificar_comanda_fechada(id_comanda, forma_pagamento, desconto, valor_total)
+    if comanda_fechada_ja_existe is not None: return True, comanda_fechada_ja_existe
+    nova_add = db_criar_comanda_fechada(id_comanda, forma_pagamento, desconto, valor_total)
     return False, nova_add
 
 
@@ -273,28 +281,25 @@ CREATE TABLE IF NOT EXISTS comanda (
 );
 
 CREATE TABLE IF NOT EXISTS addItems (
+    id_item_comanda INTEGER PRIMARY KEY AUTOINCREMENT, 
     id_comanda INTEGER NOT NULL,
     id_servico INTEGER NOT NULL,
     quantidade INTEGER NOT NULL,
-    id_funcionario INTEGER NOT NULL,
+    id_funcionario INTEGER NOT NULL,    
     FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda),
     FOREIGN KEY (id_servico) REFERENCES servico(id_servico),
-    FOREIGN KEY (id_funcionario) REFERENCES funcionario(id_funcionario),
-    PRIMARY KEY (id_comanda,id_servico)
-    
-
+    FOREIGN KEY (id_funcionario) REFERENCES funcionario(id_funcionario)
 );
+
+
 
 CREATE TABLE IF NOT EXISTS comandaFechada (
     id_comanda_fechada INTEGER PRIMARY KEY,
     id_comanda INTEGER NOT NULL,
-    valor_unitario REAL NOT NULL,
+    forma_pagamento JSON NOT NULL,  
     desconto REAL NOT NULL,
     valor_total REAL NOT NULL,
-    id_forma_pagamento INTERGER NOT NULL,
-    FOREIGN KEY (id_forma_pagamento) REFERENCES forma_pagamento(id_forma_pagamento),
     FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda)
-
 );
 
 CREATE TABLE IF NOT EXISTS atendimento (
@@ -326,6 +331,9 @@ REPLACE INTO forma_pagamento (id_forma_pagamento, nome) VALUES (3, 'Débito');
 REPLACE INTO forma_pagamento (id_forma_pagamento, nome) VALUES (4, 'Crédito a vista');
 REPLACE INTO forma_pagamento (id_forma_pagamento, nome) VALUES (5, 'Crédito Parcelado');
 REPLACE INTO forma_pagamento (id_forma_pagamento, nome) VALUES (6, 'Pagamento Misto');
+REPLACE INTO forma_pagamento (id_forma_pagamento, nome) VALUES (7, 'Vale-presente');
+
+
 
 REPLACE INTO tb_admin (nome, email, senha) VALUES ('Susana Alves Azevedo', 'susana.azevedo', '198385');
 
@@ -335,10 +343,13 @@ REPLACE INTO cargo (id_cargo, nome_cargo) VALUES (3,'Auxiliar');
 REPLACE INTO cargo (id_cargo, nome_cargo) VALUES (4,'Design');
 
 
+REPLACE INTO situacao (id_situacao, nome) VALUES (1,'Aberto');
+REPLACE INTO situacao (id_situacao, nome) VALUES (2,'Fechado');
 
 
-
-
+REPLACE INTO operacao (id_operacao, nome) VALUES (1,'Venda');
+REPLACE INTO operacao (id_operacao, nome) VALUES (2,'Troca');
+REPLACE INTO operacao (id_operacao, nome) VALUES (3,'Devolção');
 
 
 """
@@ -358,7 +369,21 @@ REPLACE INTO cargo (id_cargo, nome_cargo) VALUES (4,'Design');
 # REPLACE INTO funcionario (id_funcionario, id_cargo, nome, cpf, email, endereco, telefone, status) VALUES (3, 1, 'Joana Feliz', '00000000000', 'joana@email.com', 'rua tal', '00988887777', 'ativo');
 
 
+# CREATE TABLE IF NOT EXISTS comanda_item (
+#     id_item INTEGER PRIMARY KEY AUTOINCREMENT,
+#     id_comanda INTEGER,
+#     descricao_servico TEXT,
+#     valor_servico REAL,
+#     FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda)
+# );
 
+# CREATE TABLE IF NOT EXISTS comanda_pagamento (
+#     id_pagamento INTEGER PRIMARY KEY AUTOINCREMENT,
+#     id_comanda INTEGER,
+#     forma_pagamento TEXT,
+#     valor_pagamento REAL,
+#     FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda)
+# );
 
 
 
@@ -418,14 +443,46 @@ def db_verificar_funcionario(id_cargo, nome, cpf, email, endereco, telefone, sta
 
 def db_verificar_comanda(id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, nome):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT id_comanda,id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, id_funcionario FROM comanda WHERE id_cliente = ? and numero_comanda = ? and data_venda = ? and id_operacao = ? and id_situacao = ? and id_funcionario = ?", [id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, nome])
+        # Verificar se já existe uma comanda com id_situacao = 1
+        cur.execute("SELECT id_comanda FROM comanda WHERE id_cliente = ? AND numero_comanda = ? AND id_situacao = 1", 
+                    [id_cliente, numero_comanda])
+
+        # Se encontrar uma comanda com id_situacao = 1, bloquear a criação
+        comanda_existente = cur.fetchone()
+        if comanda_existente:
+            return {"erro": "Comanda não pode ser criada. Já existe uma comanda com a situação ativa (id_situacao = 1)."}
+
+        # Continuar com a criação se a situação não for 1
+        cur.execute("SELECT id_comanda, id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, id_funcionario "
+                    "FROM comanda WHERE id_cliente = ? AND numero_comanda = ? AND data_venda = ? AND id_operacao = ? AND id_situacao = ? AND id_funcionario = ?",
+                    [id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, nome])
+        
         return row_to_dict(cur.description, cur.fetchone())
+
+
+def verificar_comanda_aberta(comanda_numero):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT comanda.id_comanda, comanda.numero_comanda,comanda.data_venda, cliente.nome AS nome_cliente, situacao.nome AS situacao,funcionario.nome AS nome_funcionario,operacao.nome AS operacao FROM  comanda INNER JOIN  situacao ON comanda.id_situacao = situacao.id_situacao INNER JOIN cliente ON comanda.id_cliente = cliente.id_cliente INNER JOIN     funcionario ON comanda.id_funcionario = funcionario.id_funcionario INNER JOIN     operacao ON comanda.id_operacao = operacao.id_operacao WHERE situacao.nome = 'Aberto' AND comanda.numero_comanda = ?", [comanda_numero])
+        resultado = row_to_dict(cur.description, cur.fetchone())
+        if resultado:
+            situacao = resultado["situacao"]
+            return situacao == 'Aberto'  # Retorna True se estiver aberta
+        else:
+            return False  # Comanda não encontrada
 
 
 def db_verificar_additems(id_comanda, id_servico, quantidade, id_funcionario):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("SELECT id_comanda, id_servico, quantidade, id_funcionario FROM addItems WHERE id_comanda = ? and id_servico = ? and quantidade = ? and id_funcionario = ?", [id_comanda, id_servico, quantidade, id_funcionario])
         return row_to_dict(cur.description, cur.fetchone())
+    
+
+def db_verificar_comanda_fechada(id_comanda, forma_pagamento, desconto, valor_total):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT id_comanda, forma_pagamento, desconto, valor_total FROM comandaFechada WHERE id_comanda = ? and forma_pagamento = ? and desconto = ? and valor_total = ?", [id_comanda, forma_pagamento, desconto, valor_total])
+        return row_to_dict(cur.description, cur.fetchone())
+    
+
 
 def db_verifica_additem(id_comanda):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
@@ -526,9 +583,17 @@ def db_criar_saida(data, descricao, valor, observacao):
 def db_criar_additems(id_comanda, id_servico, quantidade, id_funcionario):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("INSERT INTO addItems (id_comanda, id_servico, quantidade, id_funcionario) VALUES (?, ?, ?, ?)", [id_comanda, id_servico, quantidade, id_funcionario])
+        id_item_comanda = cur.lastrowid
         con.commit()
-        return {'id_comanda':id_comanda, 'id_servico':id_servico, 'quantidade':quantidade, 'id_funcionario':id_funcionario}
+        return {'id_item_comanda': id_item_comanda, 'id_comanda':id_comanda, 'id_servico':id_servico, 'quantidade':quantidade, 'id_funcionario':id_funcionario}
 
+
+def db_criar_comanda_fechada(id_comanda, forma_pagamento, desconto, valor_total):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("INSERT INTO comandaFechada (id_comanda, forma_pagamento, desconto, valor_total) VALUES (?, ?, ?, ?)", [id_comanda, forma_pagamento, desconto, valor_total])
+        id_comanda_fechada = cur.lastrowid
+        con.commit()
+        return {'id_comanda_fechada': id_comanda_fechada, 'id_comanda':id_comanda, 'forma_pagamento':forma_pagamento, 'desconto':desconto, 'valor_total':valor_total}
 
 
 def db_fazer_login_admin(email, senha):
@@ -802,6 +867,7 @@ def db_deletar_operacao(id_operacao):
         cur.execute("DELETE FROM operacao WHERE id_operacao = ?", [id_operacao])
         con.commit()
 
+
 def db_alterar():
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("ALTER TABLE addItems ADD CONSTRAINT PK_add_items PRIMARY KEY(id_comanda,id_servico)")
@@ -860,7 +926,7 @@ def db_atualizar_comanda(id_situacao, numero_comanda):
 
 # def db_alterar_saida():
 #     with closing(conectar()) as con, closing(con.cursor()) as cur:
-#         cur.execute("DROP TABLE cliente_nova;")
+#         cur.execute("DROP TABLE forma_pagamento_antiga;")
 #         con.commit()
 
 
@@ -882,8 +948,34 @@ def converter_data(data_str):
     data_obj = datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
     return data_obj.strftime("%d/%m/%Y")
 
+def obter_id_servico(nome_servico):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT id_servico FROM servico WHERE nome_servico = ?", [nome_servico])
+        resultado = cur.fetchone()
+        if resultado:
+            return resultado[0]
+        return None
 
-#db_criar_admin("robson", "robson.email@email.com", "123456)
+
+def obter_id_funcionario(nome_funcionario):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT id_funcionario FROM funcionario WHERE nome = ?", [nome_funcionario,])
+        resultado = cur.fetchone()
+        if resultado:
+            return resultado[0]
+        return None
+    
+
+def obter_id_comanda(numero_comanda):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT id_comanda FROM comanda WHERE numero_comanda = ? AND id_situacao = 1", [numero_comanda,])
+        resultado = cur.fetchone()
+        if resultado:
+            return resultado[0]
+        return None
 
 
-     
+def obter_historico_atendimento(nome):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? ORDER BY c.data_venda DESC;", [nome])
+        return rows_to_dict(cur.description, cur.fetchall())

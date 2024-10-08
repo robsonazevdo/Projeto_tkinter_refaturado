@@ -93,7 +93,6 @@ class Update_servico(tk.Toplevel):
         selected_cargo = self.textArea.get()
         if selected_cargo in self.cargo_map:
             selected_id_cargo = self.cargo_map[selected_cargo]
-        print(self.valores[0], self.nome_servico.get().strip(" ").capitalize(), self.preco_servico.get(), self.duracao_servico.get(), estado, selected_id_cargo)    
         s = dados.editar_servico(self.valores[0], self.nome_servico.get().strip(" ").capitalize(), self.preco_servico.get(), self.duracao_servico.get(), estado, selected_id_cargo)
         if s == False:
             self.nome_servico.delete(0, tk.END)
