@@ -977,5 +977,5 @@ def obter_id_comanda(numero_comanda):
 
 def obter_historico_atendimento(nome):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? ORDER BY c.data_venda DESC;", [nome])
+        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
         return rows_to_dict(cur.description, cur.fetchall())

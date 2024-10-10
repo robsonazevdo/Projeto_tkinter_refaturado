@@ -5,7 +5,7 @@ from tkinter import ttk
 from tkinter.messagebox import showinfo, showerror, askquestion
 from tkcalendar import DateEntry
 from operator import neg
-# import calendario
+from datetime import datetime, date
 
 
 class Historico_Atendimento(tk.Toplevel):
@@ -62,7 +62,7 @@ class Historico_Atendimento(tk.Toplevel):
     self.quadroGrid = tk.LabelFrame(self, text="Clientes", background="#b4918f",fg="white", bd=5, font=('TkMenuFont', 12))
     self.quadroGrid.pack(fill="both", padx=10,pady=10)
     
-    self.tv2 = ttk.Treeview(self.quadroGrid, columns=("id","Data","Nome","Valor", "Descricao", "Desconto","Valor_Pago", "forma"), show="headings",)
+    self.tv2 = ttk.Treeview(self.quadroGrid, columns=("id","Nome"), show="headings",)
     
     self.tv2.column("id",minwidth=0,width=30, anchor=tk.W, )
     
@@ -81,37 +81,53 @@ class Historico_Atendimento(tk.Toplevel):
 
         
   def mostrar_historico_atendimento(self):
-    # Simular a chamada para obter os resultados (substitua por dados.obter_historico_atendimento("Renata"))
-    resultados = dados.obter_historico_atendimento("Renata")
-    
-    if not resultados:
-        showinfo("Histórico de Atendimento", "Sem histórico de atendimento para o cliente: Renata", parent=self)
-        return
-    
-    
-    self.tv.delete(*self.tv.get_children())
 
-    # Variável para rastrear a última comanda impressa
-    comanda_atual = None
-
-    # Loop pelos resultados para popular a Treeview
-    for f in resultados:
-        numero_comanda = f["numero_comanda"]
-        data_venda = f["data_venda"]
-        valor_total = f["valor_total"]
-        desconto = f["desconto"]
-        forma_pagamento = f["forma_pagamento"]
-        nome_servico = f["nome_servico"]
-        quantidade = f["quantidade"]
+    try:
         
-        if comanda_atual != numero_comanda:
-            # Exibir os dados da nova comanda na Treeview
-            self.tv.insert("", "end", values=(numero_comanda, data_venda, valor_total, desconto, forma_pagamento, nome_servico, quantidade))
-            comanda_atual = numero_comanda
-        else:
-            # Exibir os itens/serviços da mesma comanda
-            self.tv.insert("", "end", values=("", "", "", "", "", nome_servico, quantidade))
+        if not self.tv2.selection():
+            showerror("ERRO!", "Precisa Selecionar um Cliente", parent=self)
+            return
+        
 
+        items = self.tv2.selection()[0]
+        cliente = self.tv2.item(items, "value")
+    
+    
+    
+        resultados = dados.obter_historico_atendimento(cliente[1])
+        
+        
+        if not resultados:
+            showinfo("Histórico de Atendimento", f"Sem histórico de atendimento para o cliente: {cliente[1]}", parent=self)
+            return
+        
+        
+        self.tv.delete(*self.tv.get_children())
+
+        
+        comanda_atual = None
+
+        
+        for f in resultados:
+          numero_comanda = f["numero_comanda"]
+          data_obj = datetime.strptime(f["data_venda"], "%Y-%m-%d %H:%M:%S")
+          data_venda = data_obj.strftime("%d/%m/%Y")
+          valor_total = f["valor_total"]
+          desconto = f["desconto"]
+          forma_pagamento = f["forma_pagamento"]
+          nome_servico = f["nome_servico"]
+          quantidade = f["quantidade"]
+          
+          if comanda_atual != numero_comanda:
+              
+              self.tv.insert("", "end", values=(numero_comanda, data_venda, valor_total, desconto, forma_pagamento, nome_servico, quantidade))
+              comanda_atual = numero_comanda
+          else:
+              
+              self.tv.insert("", "end", values=("", "", "", "", "", nome_servico, quantidade))
+
+    except Exception as e:
+        showerror("ERRO!", f"Um erro ocorreu: {str(e)}", parent=self)
 
         
   def popular(self):

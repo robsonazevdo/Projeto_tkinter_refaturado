@@ -290,8 +290,8 @@ class BeautySalon(tk.Toplevel):
             id_comanda = dados.obter_id_comanda(comanda_numero)
             
             if id_servico and id_funcionario:
-                #dados.criar_additems(id_comanda, id_servico, q, id_funcionario)
-                print(id_comanda, id_servico, q, id_funcionario)
+                dados.criar_additems(id_comanda, id_servico, q, id_funcionario)
+                   
             else:
                 showerror("Erro: Não foi possível encontrar o ID do serviço ou do funcionário.")
 
@@ -457,9 +457,9 @@ class BeautySalon(tk.Toplevel):
         forma = json.dumps(pagamento)
         total = self.total_
         id_comanda = dados.obter_id_comanda(comanda_numero)
-        #dados.criar_comanda_fechada(id_comanda, forma, self.entry_desconto.get(), total)
-        print(id_comanda, forma, self.entry_desconto.get(), total)
-        #dados.db_atualizar_comanda(2, comanda_numero)
+        dados.criar_comanda_fechada(id_comanda, forma, self.entry_desconto.get(), total)
+       
+        dados.db_atualizar_comanda(2, comanda_numero)
 
         window.destroy()  # Fechar a janela de atendimento
         self.entry_comanda.delete(0, tk.END)  # Limpar entrada de comanda
