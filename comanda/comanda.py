@@ -7,6 +7,7 @@ from tkinter.messagebox import showinfo, showerror, showwarning, askyesno
 from tkcalendar import DateEntry
 from datetime import datetime, date
 import json
+import unicodedata
 # import calendario
 
 
@@ -454,7 +455,8 @@ class BeautySalon(tk.Toplevel):
 
   def finalizar_atendimento_tela(self, window, comanda_numero, pagamento):
         showinfo("Atendimento Finalizado", f"Comanda {comanda_numero} foi finalizada!", parent=self)
-        forma = json.dumps(pagamento)
+        nova_forma_pagamento = {self.remover_acentos(chave): valor for chave, valor in pagamento.items()}
+        forma = json.dumps(nova_forma_pagamento)
         total = self.total_
         id_comanda = dados.obter_id_comanda(comanda_numero)
         dados.criar_comanda_fechada(id_comanda, forma, self.entry_desconto.get(), total)
@@ -531,7 +533,11 @@ class BeautySalon(tk.Toplevel):
         return True
     return False
 
-
+  def remover_acentos(self,texto):
+    # Normalize a string para decompor os acentos e depois removê-los
+    texto_normalizado = unicodedata.normalize('NFD', texto)
+    texto_sem_acentos = ''.join(c for c in texto_normalizado if unicodedata.category(c) != 'Mn')
+    return texto_sem_acentos
 
 
 import re
