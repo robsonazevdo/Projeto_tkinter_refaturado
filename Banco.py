@@ -450,7 +450,7 @@ def db_verificar_comanda(id_cliente, numero_comanda, data_venda, id_operacao, id
         # Se encontrar uma comanda com id_situacao = 1, bloquear a criação
         comanda_existente = cur.fetchone()
         if comanda_existente:
-            return {"erro": "Comanda não pode ser criada. Já existe uma comanda com a situação ativa (id_situacao = 1)."}
+            return {"erro": "Comanda não pode ser criada. Já existe uma comanda com a Aberta"}
 
         # Continuar com a criação se a situação não for 1
         cur.execute("SELECT id_comanda, id_cliente, numero_comanda, data_venda, id_operacao, id_situacao, id_funcionario "
@@ -618,6 +618,25 @@ def db_consultar_funcionario(id_funcionario):
         cur.execute("SELECT f.id_funcionario, f.nome, f.email, f.endereco, f.telefone, f.cpf, cg.nome_cargo, f.status, cg.id_cargo FROM funcionario AS f inner join cargo As cg ON f.id_cargo = cg.id_cargo  where f.id_funcionario = ?",[id_funcionario])
         return row_to_dict(cur.description, cur.fetchone())
 
+def db_consultar_comanda(numero_comanda):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("""SELECT 
+                    c.numero_comanda,
+                    c.data_venda,
+                    cli.id_cliente,
+                    f.id_funcionario,
+                    o.id_operacao
+                    FROM 
+                        comanda c
+                    JOIN 
+                        cliente cli ON c.id_cliente = cli.id_cliente
+                    JOIN 
+                        funcionario f ON f.id_funcionario = c.id_funcionario
+                    JOIN 
+                        operacao o ON o.id_operacao = c.id_operacao   
+                    WHERE 
+                        c.id_situacao = 1 and c.numero_comanda = ?""",[numero_comanda])
+        return row_to_dict(cur.description, cur.fetchone())
 
 def db_historico_cliente(nome_cliente):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
@@ -625,27 +644,52 @@ def db_historico_cliente(nome_cliente):
         return rows_to_dict(cur.description, cur.fetchall())
     
     
-def db_historico_atendimento(nome):
-    with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT a.id_atendimento, a.data, c.nome, a.valor_unitario, a.descricao, a.desconto, a.valor_total, f.nome as forma_pagamento FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE c.nome LIKE '%"+nome+"%' ORDER BY a.data ")
-        return rows_to_dict(cur.description, cur.fetchall())
+# def db_historico_atendimento(nome):
+#     with closing(conectar()) as con, closing(con.cursor()) as cur:
+#         cur.execute("SELECT a.id_atendimento, a.data, c.nome, a.valor_unitario, a.descricao, a.desconto, a.valor_total, f.nome as forma_pagamento FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE c.nome LIKE '%"+nome+"%' ORDER BY a.data ")
+#         return rows_to_dict(cur.description, cur.fetchall())
+
 
 
 def db_trazer_historico_atendimento(data):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT a.id_atendimento, a.data, c.nome, a.valor_unitario, a.descricao, a.desconto, a.valor_total, f.nome as forma_pagamento FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE a.data = ?",[data])
+        cur.execute("""SELECT 
+        c.numero_comanda,
+        c.data_venda,
+        cli.nome,
+        cf.valor_total,
+        cf.forma_pagamento
+        FROM 
+            comanda c
+        JOIN 
+            cliente cli ON c.id_cliente = cli.id_cliente
+        JOIN 
+            comandaFechada cf ON c.id_comanda = cf.id_comanda
+        WHERE 
+            c.id_situacao = 2
+            AND  c.data_venda = ?""",[data])
+        
+        results = rows_to_dict(cur.description, cur.fetchall())
+        for result in results:
+            result['data_venda'] = converter_data(result['data_venda'])
+        return results
+    
+    
+
+def obter_historico_atendimento(nome):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
         return rows_to_dict(cur.description, cur.fetchall())
     
     
-def db_trazer_historico_atendimento_mes_ano(m,Y):
+    
+def trazer_entradas_mes_ano(m,y):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT a.id_atendimento, a.data, c.nome, a.valor_unitario, a.descricao, a.desconto, a.valor_total, f.nome as forma_pagamento FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE strftime('%m', a.data) = ? AND strftime('%Y', a.data) = ?",[f"{int(m):02}", str(Y)])
+        cur.execute("SELECT c.numero_comanda, c.data_venda, cli.nome, cf.valor_total, cf.forma_pagamento FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda WHERE c.id_situacao = 2 AND strftime('%m', c.data_venda) = ? AND strftime('%Y', c.data_venda) = ? ORDER BY c.data_venda DESC;", [f"{int(m):02}", str(y)])
         results = rows_to_dict(cur.description, cur.fetchall())
         for result in results:
-            result['data'] = converter_data(result['data'])
+            result['data_venda'] = converter_data(result['data_venda'])
         return results
-    
-
  
 def db_listar_saida(data):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
@@ -687,23 +731,42 @@ def db_listar_saida_mes_ano(data_inicial, data_fim):
     
 def db_historico_entrada_saida(data_inicial, data_fim):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT SUM(a.valor_total) as tt FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE a.data BETWEEN ? and ?",[date(data_inicial[0],data_inicial[1],data_inicial[2]), date(data_fim[0], data_fim[1],data_fim[2])])
+        cur.execute("""SELECT 
+                sum(cf.valor_total) as tt
+            FROM 
+                comanda c
+            JOIN 
+                cliente cli ON c.id_cliente = cli.id_cliente
+            JOIN 
+                comandaFechada cf ON c.id_comanda = cf.id_comanda
+            WHERE 
+                c.id_situacao = 2
+                AND c.data_venda BETWEEN ? AND ?;""",[date(data_inicial[0],data_inicial[1],data_inicial[2]), date(data_fim[0], data_fim[1],data_fim[2])])
         return rows_to_dict(cur.description, cur.fetchall())
     
        
     
 def db_historico_entrada(data):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT SUM(a.valor_total) as tt FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE a.data = ?",[data])
+        cur.execute("""SELECT 
+        sum(cf.valor_total) as tt
+        FROM 
+            comanda c
+        JOIN 
+            cliente cli ON c.id_cliente = cli.id_cliente
+        JOIN 
+            comandaFechada cf ON c.id_comanda = cf.id_comanda
+        WHERE 
+            c.id_situacao = 2
+        AND  c.data_venda = ?""",[data])
         return rows_to_dict(cur.description, cur.fetchall())
     
-
-def db_historico_entrada_mes_ano(m,Y):
+    
+    
+def trazer_soma_entrada_mes_ano(m,Y):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("""SELECT SUM(a.valor_total) as tt FROM atendimento as a INNER JOIN cliente as c ON a.id_cliente = c.id_cliente INNER JOIN forma_pagamento as f ON f.id_forma_pagamento = a.id_forma_pagamento WHERE strftime('%m', data) = ? AND strftime('%Y', data) = ?""",[f"{int(m):02}", str(Y)])
+        cur.execute("SELECT SUM( cf.valor_total) as tt FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda WHERE c.id_situacao = 2 AND strftime('%m', c.data_venda) = ? AND strftime('%Y', c.data_venda) = ?",[f"{int(m):02}", str(Y)])
         return rows_to_dict(cur.description, cur.fetchall())
-    
-
 
 
     
@@ -975,7 +1038,3 @@ def obter_id_comanda(numero_comanda):
         return None
 
 
-def obter_historico_atendimento(nome):
-    with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
-        return rows_to_dict(cur.description, cur.fetchall())

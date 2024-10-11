@@ -34,6 +34,7 @@ class BeautySalon(tk.Toplevel):
     self.entry_comanda = tk.Entry(self.frame_comanda)
     self.entry_comanda.grid(row=0, column=1, padx=5)
 
+    self.entry_comanda.bind('<KeyRelease>', self.pesquisar_comanda)
 
     client = dados.db_listar_cliente()
     self.client_map = {c['nome']: c['id_cliente'] for c in client}
@@ -311,7 +312,7 @@ class BeautySalon(tk.Toplevel):
     self.iconphoto(False, tk.PhotoImage(file='assets/Logo-colorido.png'))
     x =  pagamento_window.winfo_screenwidth() // 4
     y = int(self.winfo_screenheight() * 0.1)
-    pagamento_window.geometry('700x600+' + str(x) + '+' + str(y))
+    pagamento_window.geometry('800x600+' + str(x) + '+' + str(y))
     pagamento_window.configure(background="#b4918f")
 
     # Total da comanda
@@ -417,7 +418,7 @@ class BeautySalon(tk.Toplevel):
         self.iconphoto(False, tk.PhotoImage(file='assets/Logo-colorido.png'))
         x =  atendimento_window.winfo_screenwidth() // 4
         y = int(self.winfo_screenheight() * 0.1)
-        atendimento_window.geometry('700x600+' + str(x) + '+' + str(y))
+        atendimento_window.geometry('800x600+' + str(x) + '+' + str(y))
         atendimento_window.configure(background="#b4918f")
 
 
@@ -447,10 +448,17 @@ class BeautySalon(tk.Toplevel):
 
 
         # Mostrar total
-        tk.Label(atendimento_window, text=f"Total: R$ {total:.2f}", font=("Helvetica", 14)).pack(pady=10)
+        tk.Label(atendimento_window, text=f"Total: R$ {total:.2f}", background="#b4918f", fg="white", bd=5, font=('TkMenuFont', 12)).pack(pady=10)
 
         # Botão de finalizar atendimento
-        tk.Button(atendimento_window, text="Finalizar Atendimento", command=lambda: self.finalizar_atendimento_tela(atendimento_window, comanda_numero, pagamento)).pack(pady=10)
+        tk.Button(atendimento_window, text="Finalizar Atendimento", font=('TkMenuFont', 10),
+        bg="#28393a",
+        fg="white",
+        cursor="hand2",
+        activebackground="#badee2",
+        activeforeground="black",
+        bd = 5,
+        command=lambda: self.finalizar_atendimento_tela(atendimento_window, comanda_numero, pagamento)).pack(pady=10)
 
 
   def finalizar_atendimento_tela(self, window, comanda_numero, pagamento):
@@ -539,7 +547,30 @@ class BeautySalon(tk.Toplevel):
     texto_sem_acentos = ''.join(c for c in texto_normalizado if unicodedata.category(c) != 'Mn')
     return texto_sem_acentos
 
+  def pesquisar_comanda(self, event):
+    se_existe = dados.db_consultar_comanda(self.entry_comanda.get())
+    
+    if se_existe is not None: 
+        id_cliente = se_existe["id_cliente"]
+        id_funcionario = se_existe["id_funcionario"]
+        data_venda = se_existe["data_venda"]
+        id_operacao = se_existe["id_operacao"]
 
+        nome_cliente = next((nome for nome, id_ in self.client_map.items() if id_ == id_cliente), None)
+        nome_funcionario = next((nome for nome, id_ in self.funcionario_map.items() if id_ == id_funcionario), None)
+        nome_operador = next((nome for nome, id_ in self.operacao_map.items() if id_ == id_operacao), None)
+        self.entry_cliente.set(nome_cliente)
+        self.entry_funcionario.set(nome_funcionario)
+        self.entry_operacao.set(nome_operador)
+        
+        data_convertida = datetime.strptime(data_venda, '%Y-%m-%d %H:%M:%S')
+        data_formatada = data_convertida.strftime('%d/%m/%Y')
+        self.data.set_date(data_formatada)
+        
+        
+        
+    
+  
 import re
 
 def extrair_dados(item):

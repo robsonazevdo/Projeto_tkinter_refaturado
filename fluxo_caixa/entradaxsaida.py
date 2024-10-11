@@ -5,6 +5,7 @@ from tkinter import ttk
 from tkinter.messagebox import showinfo, showerror, askquestion
 from tkcalendar import DateEntry
 from datetime import datetime
+import json
 
 class Entrada_Saida(tk.Toplevel):
   def __init__(self, parent):
@@ -204,8 +205,10 @@ class Entrada_Saida(tk.Toplevel):
       self.tv.delete(*self.tv.get_children())
       self.tvs.delete(*self.tvs.get_children())
 
-      historico = dados.db_trazer_historico_atendimento_mes_ano(mes_numero - 1, ano_selecionado)
-      historicoConsulta = dados.db_historico_entrada_mes_ano(mes_numero - 1, ano_selecionado)
+      
+
+      historico = dados.trazer_entradas_mes_ano(mes_numero - 1, ano_selecionado)
+      historicoConsulta = dados.trazer_soma_entrada_mes_ano(mes_numero - 1, ano_selecionado)
       todosSaida = dados.db_listar_saida_mes_ano2(mes_numero - 1, ano_selecionado)
       somaSaida = dados.db_historico_saida333(mes_numero - 1, ano_selecionado)
       
@@ -239,7 +242,10 @@ class Entrada_Saida(tk.Toplevel):
           self.tvs.insert("","end", values=(s['id_saida'],s["data"],s['descricao'],"%.2f" %s['valor_total'],s['observacao'])) 
       
       for c in historico:
-          self.tv.insert("","end", values=(c['id_atendimento'],c["data"],c['nome'],"%.2f" %c['valor_total'],c['forma_pagamento']))
+        forma_pagamento_dict = json.loads(c['forma_pagamento'])
+        # Obter a primeira chave (forma de pagamento)
+        primeira_parte = list(forma_pagamento_dict.keys())[0]
+        self.tv.insert("","end", values=(c['numero_comanda'],c["data_venda"],c['nome'],"%.2f" %c['valor_total'],primeira_parte))
 
       d = self.data.get().split("/")
       res = [ele.lstrip('0') for ele in d] 
@@ -256,6 +262,7 @@ class Entrada_Saida(tk.Toplevel):
   def buscarAtendimento2(self):
       self.tv.delete(*self.tv.get_children())
       self.tvs.delete(*self.tvs.get_children())
+
       historico = dados.db_trazer_historico_atendimento(datetime.strptime(self.data.get(), "%d/%m/%Y"))
       historicoConsulta = dados.db_historico_entrada(datetime.strptime(self.data.get(), "%d/%m/%Y"))
       todosSaida = dados.db_listar_saida(datetime.strptime(self.data.get(), "%d/%m/%Y"))
@@ -290,7 +297,11 @@ class Entrada_Saida(tk.Toplevel):
           self.tvs.insert("","end", values=(s['id_saida'],s["data"],s['descricao'],"%.2f" %s['valor_total'],s['observacao'])) 
       
       for c in historico:
-          self.tv.insert("","end", values=(c['id_atendimento'],c["data"],c['nome'],"%.2f" %c['valor_total'],c['forma_pagamento']))
+        forma_pagamento_dict = json.loads(c['forma_pagamento'])
+       
+        primeira_parte = list(forma_pagamento_dict.keys())[0]
+        self.tv.insert("","end", values=(c['numero_comanda'],c["data_venda"],c['nome'],"%.2f" %c['valor_total'],primeira_parte))
+        
 
       d = self.data.get().split("/")
       res = [ele.lstrip('0') for ele in d] 
