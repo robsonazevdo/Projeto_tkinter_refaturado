@@ -680,7 +680,45 @@ def obter_historico_atendimento(nome):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
         return rows_to_dict(cur.description, cur.fetchall())
-    
+        
+
+def obter_historico_atendimento_nome_data(nome, data):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("""SELECT 
+            c.numero_comanda, 
+            c.data_venda, 
+            cf.valor_total, 
+            cf.desconto, 
+            cf.forma_pagamento, 
+            s.nome_servico, 
+            ai.quantidade 
+            FROM 
+                    comanda c 
+            JOIN 
+                    cliente cli 
+            ON 
+                    c.id_cliente = cli.id_cliente 
+            JOIN 
+                    comandaFechada cf 
+            ON 
+                    c.id_comanda = cf.id_comanda 
+            JOIN 
+                    addItems ai 
+            ON 
+                    c.id_comanda = ai.id_comanda 
+            JOIN 
+                    servico s 
+            ON 
+                    ai.id_servico = s.id_servico 
+            WHERE 
+                    cli.nome = ?
+            and 
+                    c.id_situacao = 2 
+            AND 
+                    c.data_venda = ? 
+            ORDER BY 
+                    c.data_venda DESC;""", [nome, data])
+        return rows_to_dict(cur.description, cur.fetchall())
     
     
 def trazer_entradas_mes_ano(m,y):
@@ -700,7 +738,10 @@ def db_listar_saida(data):
 def db_listar_saida_mes_ano2(m,Y):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("""SELECT * FROM saida WHERE strftime('%m', data) = ? AND strftime('%Y', data) = ?""",[f"{int(m):02}", str(Y)])
-        return rows_to_dict(cur.description, cur.fetchall())
+        results = rows_to_dict(cur.description, cur.fetchall())
+        for result in results:
+            result['data'] = converter_data(result['data'])
+        return results
     
     
 def db_historico_saida333(m,Y):

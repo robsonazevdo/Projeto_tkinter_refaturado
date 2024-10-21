@@ -59,7 +59,7 @@ class Entrada_Saida(tk.Toplevel):
     tk.Button(
         frame_busca,
         text="Registrar Saída",
-        font=('TkMenuFont', 10),
+         font=('TkMenuFont', 10),
         bg="#28393a",
         fg="white",
         cursor="hand2",
@@ -127,6 +127,13 @@ class Entrada_Saida(tk.Toplevel):
     self.subtracao = tk.StringVar()
     self.total_fluxo_dia = tk.Label(frame_fluxo_dia, textvariable=self.subtracao, bd=5, background="#b4918f", font=('TkMenuFont', 25, 'bold'))
     self.total_fluxo_dia.pack(side="left", padx=10)
+
+    total_fluxo_mes_label = tk.Label(frame_fluxo_dia, text='Fluxo no Mês:', bd=5, background="#b4918f", fg="#ADD8E6", font=('TkMenuFont', 25, 'bold'))
+    total_fluxo_mes_label.pack(side="left", padx=10)
+
+    self.subtracao_mes = tk.StringVar()
+    self.total_fluxo_mes = tk.Label(frame_fluxo_dia, textvariable=self.subtracao_mes, bd=5, background="#b4918f", font=('TkMenuFont', 25, 'bold'))
+    self.total_fluxo_mes.pack(side="left", padx=10)
     
     # Frame para exibir o fluxo total do mês
     quadro_fluxo_mes = tk.LabelFrame(main_frame, text="Fluxo Total do Mês", background="#b4918f", fg="white", bd=5, font=('TkMenuFont', 14))
@@ -231,11 +238,11 @@ class Entrada_Saida(tk.Toplevel):
       corLabel = f"{float(self.string_variable.get()) - float(self.string_variable1.get()):.2f}"
       
       if float(corLabel) < 0:
-          self.total_fluxo_dia.configure(foreground="#800000")
-          self.subtracao.set(corLabel)
+          self.total_fluxo_mes.configure(foreground="#800000")
+          self.subtracao_mes.set(corLabel)
       else:
-          self.total_fluxo_dia.configure(foreground="#00008B")
-          self.subtracao.set(corLabel)
+          self.total_fluxo_mes.configure(foreground="#00008B")
+          self.subtracao_mes.set(corLabel)
       
                   
       for s in todosSaida:
