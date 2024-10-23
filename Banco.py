@@ -678,7 +678,7 @@ def db_trazer_historico_atendimento(data):
 
 def obter_historico_atendimento(nome):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
-        cur.execute("SELECT c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
+        cur.execute("SELECT c.id_comanda, c.numero_comanda, c.data_venda, cf.valor_total, cf.desconto, cf.forma_pagamento, s.nome_servico, ai.quantidade FROM comanda c JOIN cliente cli ON c.id_cliente = cli.id_cliente JOIN comandaFechada cf ON c.id_comanda = cf.id_comanda JOIN addItems ai ON c.id_comanda = ai.id_comanda JOIN servico s ON ai.id_servico = s.id_servico WHERE cli.nome = ? and c.id_situacao = 2 ORDER BY c.data_venda DESC;", [nome])
         return rows_to_dict(cur.description, cur.fetchall())
         
 
@@ -729,6 +729,27 @@ def trazer_entradas_mes_ano(m,y):
             result['data_venda'] = converter_data(result['data_venda'])
         return results
  
+
+def ticket_medio_mes(m,y):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("""SELECT 
+        COUNT(c.numero_comanda) AS total_vendas,  
+        SUM(cf.valor_total) AS valor_total_vendas,  
+        COALESCE(ROUND(SUM(cf.valor_total) * 1.0 / COUNT(c.numero_comanda), 2), 0.00) AS ticket_medio  
+        FROM 
+            comanda c
+        JOIN 
+            cliente cli ON c.id_cliente = cli.id_cliente
+        JOIN 
+            comandaFechada cf ON c.id_comanda = cf.id_comanda
+        WHERE 
+            c.id_situacao = 2 
+            AND strftime('%m', c.data_venda) = ?  
+            AND strftime('%Y', c.data_venda) = ?  
+        ORDER BY 
+            c.data_venda DESC;""", [f"{int(m):02}", str(y)])
+        return rows_to_dict(cur.description, cur.fetchall())
+
 def db_listar_saida(data):
     with closing(conectar()) as con, closing(con.cursor()) as cur:
         cur.execute("SELECT * FROM saida WHERE data = ?",[data])
@@ -1002,6 +1023,11 @@ def db_editar_atendimento(id_atendimento, id_cliente, valor_unitario, desconto, 
         return {'id_atendimento':id_atendimento, 'id_cliente':id_cliente, 'valor_unitario':valor_unitario, 'desconto':desconto, 'valor_total':valor_total, 'id_forma_pagamento':id_forma_pagamento, 'descricao': descricao, 'data': data}
 
 
+def db_editar_addItems(id_atendimento, id_cliente, valor_unitario, desconto, valor_total, id_forma_pagamento, descricao,data):
+    with closing(conectar()) as con, closing(con.cursor()) as cur:
+        cur.execute("UPDATE atendimento SET id_cliente = ? , valor_unitario = ?, desconto = ?, valor_total = ?, id_forma_pagamento = ?, descricao = ?, data = ? WHERE id_atendimento = ?", [id_cliente, valor_unitario, desconto, valor_total, id_forma_pagamento, descricao, data, id_atendimento])
+        con.commit()
+        return {'id_atendimento':id_atendimento, 'id_cliente':id_cliente, 'valor_unitario':valor_unitario, 'desconto':desconto, 'valor_total':valor_total, 'id_forma_pagamento':id_forma_pagamento, 'descricao': descricao, 'data': data}
 
 
 def db_editar_funcionario(id_funcionario, nome, email, endereco, cpf, telefone, id_cargo, status):

@@ -8,12 +8,13 @@ from datetime import datetime, date
 import json
 
 class Editar_Historico(tk.Toplevel):
-  def __init__(self, parent, edicao_position, nome):
+  def __init__(self, parent, edicao_position, nome, id_comanda):
     super().__init__(parent)
 
 
     self.edicao_position = edicao_position
     self.cliente = nome
+    self.id_comanda = id_comanda
 
     data_obj = datetime.strptime(self.edicao_position[1], "%d/%m/%Y")
     data_venda = data_obj.strftime("%Y-%m-%d %H:%M:%S")
@@ -211,7 +212,7 @@ class Editar_Historico(tk.Toplevel):
             if self.comboBox.get() == j["nome"]:
                 id_forma = j["id_forma_pagamento"]
         
-        dados.db_editar_atendimento(self.edicao_position[0], self.id.get(),self.valor.get(), self.desc.get(), self.valorTotal.get(), id_forma, self.textArea.get("1.0",tk.END), datetime.strptime(self.data.get(), "%d/%m/%Y"))
+        print(self.id_comanda, self.edicao_position[0], self.id.get(),self.valor.get(), self.desc.get(), self.valorTotal.get(), id_forma, self.textArea.get("1.0",tk.END), datetime.strptime(self.data.get(), "%d/%m/%Y"))
         showinfo("Sucesso", "Atendimento foi Alterado com sucesso", parent=self)
         
         #dados.db_editar_atendimento(id_atendimento, id_cliente, valor_unitario, desconto, valor_total, id_forma_pagamento, descricao, data)

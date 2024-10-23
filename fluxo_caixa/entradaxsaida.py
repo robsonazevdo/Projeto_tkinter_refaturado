@@ -134,6 +134,7 @@ class Entrada_Saida(tk.Toplevel):
     self.subtracao_mes = tk.StringVar()
     self.total_fluxo_mes = tk.Label(frame_fluxo_dia, textvariable=self.subtracao_mes, bd=5, background="#b4918f", font=('TkMenuFont', 25, 'bold'))
     self.total_fluxo_mes.pack(side="left", padx=10)
+
     
     # Frame para exibir o fluxo total do mês
     quadro_fluxo_mes = tk.LabelFrame(main_frame, text="Fluxo Total do Mês", background="#b4918f", fg="white", bd=5, font=('TkMenuFont', 14))
@@ -173,7 +174,12 @@ class Entrada_Saida(tk.Toplevel):
     totalSaidas_ = tk.Label(quadro_fluxo_mes, textvariable=self.somaEntradasMes, bd=5, background="#b4918f", fg=fgcm, font=('TkMenuFont', 12, 'bold'))
     totalSaidas_.grid(column=1, row=2, padx=20, pady=1, sticky='e') 
 
-    
+    total_ticket_medio_mes = tk.Label(quadro_fluxo_mes, text='Ticket Medio Mês', bd=5, background="#b4918f", fg='#1414b8', font=('TkMenuFont', 12, 'bold'))
+    total_ticket_medio_mes.grid(column=2, row=2, padx=2, pady=1, sticky='w')
+
+    self.ticket_mes = tk.StringVar()
+    self.ticket = tk.Label(quadro_fluxo_mes, textvariable=self.ticket_mes, bd=5, background="#b4918f", font=('TkMenuFont', 12, 'bold'))
+    self.ticket.grid(column=3, row=2, padx=20, pady=1, sticky='e') 
     
 
     self.combobox_meses = ttk.Combobox(quadro_fluxo_mes, values=meses, state='readonly')
@@ -218,7 +224,11 @@ class Entrada_Saida(tk.Toplevel):
       historicoConsulta = dados.trazer_soma_entrada_mes_ano(mes_numero - 1, ano_selecionado)
       todosSaida = dados.db_listar_saida_mes_ano2(mes_numero - 1, ano_selecionado)
       somaSaida = dados.db_historico_saida333(mes_numero - 1, ano_selecionado)
+
       
+      ticket_media = dados.ticket_medio_mes(mes_numero - 1, ano_selecionado)
+      self.ticket_mes.set(ticket_media[0]['ticket_medio']) 
+       
       
       if somaSaida[0]['tt'] == None:
           saida = f"{0:.2f}"
@@ -244,7 +254,8 @@ class Entrada_Saida(tk.Toplevel):
           self.total_fluxo_mes.configure(foreground="#00008B")
           self.subtracao_mes.set(corLabel)
       
-                  
+               
+        
       for s in todosSaida:
           self.tvs.insert("","end", values=(s['id_saida'],s["data"],s['descricao'],"%.2f" %s['valor_total'],s['observacao'])) 
       
@@ -274,6 +285,7 @@ class Entrada_Saida(tk.Toplevel):
       historicoConsulta = dados.db_historico_entrada(datetime.strptime(self.data.get(), "%d/%m/%Y"))
       todosSaida = dados.db_listar_saida(datetime.strptime(self.data.get(), "%d/%m/%Y"))
       somaSaida = dados.db_historico_saida(datetime.strptime(self.data.get(), "%d/%m/%Y"))
+
       
       
       if somaSaida[0]['tt'] == None:
