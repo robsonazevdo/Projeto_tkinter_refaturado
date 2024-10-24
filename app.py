@@ -212,12 +212,12 @@ class Frame2(tk.Frame):
         barraMenu.add_cascade(label="Cadastro",menu=menuContatos)
         
 
-        menuAtendimento = tk.Menu(barraMenu, tearoff=0)
-        menuAtendimento.add_command(label="Novo",command=self.novo_atendimento)
-        menuAtendimento.add_command(label="Pesquisar",command=self.pesquisar_atendimento)
-        menuAtendimento.add_command(label="Deletar",command=self.deletar_atendimento)
+        # menuAtendimento = tk.Menu(barraMenu, tearoff=0)
+        # menuAtendimento.add_command(label="Novo",command=self.novo_atendimento)
+        # menuAtendimento.add_command(label="Pesquisar",command=self.pesquisar_atendimento)
+        # menuAtendimento.add_command(label="Deletar",command=self.deletar_atendimento)
     
-        barraMenu.add_cascade(label="Atendimento ",menu=menuAtendimento)
+        # barraMenu.add_cascade(label="Atendimento ",menu=menuAtendimento)
         
         
         relatorioMenu = tk.Menu(barraMenu, tearoff=0)
@@ -225,6 +225,11 @@ class Frame2(tk.Frame):
         relatorioMenu.add_command(label="Saída", command=self.saida)
         relatorioMenu.add_command(label="Contas a Pagar", command=self.contas_a_pagar)
         barraMenu.add_cascade(label="Fluxo de caixa", menu=relatorioMenu)
+
+
+        comanda_Menu = tk.Menu(barraMenu, tearoff=0)
+        comanda_Menu.add_command(label="Comanda", command=self.comanda)
+        barraMenu.add_cascade(label="Comanda", menu=comanda_Menu)
         
         
         AgendaMenu = tk.Menu(barraMenu, tearoff=0)
@@ -232,19 +237,14 @@ class Frame2(tk.Frame):
         barraMenu.add_cascade(label="Agenda", menu=AgendaMenu)
 
 
-        backup_Menu = tk.Menu(barraMenu, tearoff=0)
-        backup_Menu.add_command(label="Backup", command=self.fazer_backup)
-        barraMenu.add_cascade(label="Backup", menu=backup_Menu)
-
-
-        comanda_Menu = tk.Menu(barraMenu, tearoff=0)
-        comanda_Menu.add_command(label="Comanda", command=self.comanda)
-        barraMenu.add_cascade(label="Venda", menu=comanda_Menu)
-
-
         historico_Menu = tk.Menu(barraMenu, tearoff=0)
         historico_Menu.add_command(label="Histórico", command=self.historico)
         barraMenu.add_cascade(label="Histórico Atendimento", menu=historico_Menu)
+
+
+        backup_Menu = tk.Menu(barraMenu, tearoff=0)
+        backup_Menu.add_command(label="Backup", command=self.fazer_backup)
+        barraMenu.add_cascade(label="Backup", menu=backup_Menu)
 
 
         self.master.config(menu=barraMenu)
